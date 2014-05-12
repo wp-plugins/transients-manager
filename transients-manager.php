@@ -3,7 +3,7 @@
  * Plugin Name: Transients Manager
  * Plugin URL: http://pippinsplugins.com/transients-manager
  * Description: Provides a UI to manage your site's transients. You can view, search, edit, and delete transients at will.
- * Version: 1.0
+ * Version: 1.0.1
  * Author: Pippin Williamson
  * Author URI: http://pippinsplugins.com
  * Contributors: mordauk
@@ -325,7 +325,7 @@ class PW_Transients_Manager {
 	 * @since   1.0
 	*/
 	private function get_transient_name( $transient ) {
-		return str_replace( '_transient_', '', $transient->option_name );
+		return substr( $transient->option_name, 11, strlen( $transient->option_name ) );
 	}
 
 	/**
@@ -375,8 +375,12 @@ class PW_Transients_Manager {
 	*/
 	private function get_transient_expiration( $transient ) {
 
-		$exp = get_option( '_transient_timeout_' . $this->get_transient_name( $transient ) );
-		return human_time_diff( current_time( 'timestamp' ), $exp );
+		$time_now   = current_time( 'timestamp' );
+		$expiration = $this->get_transient_expiration_time( $transient );
+		if( $time_now > $expiration ) {
+			return __( 'Expired', 'pw-transients-manager' );
+		}
+		return human_time_diff( $time_now, $expiration );
 
 	}
 
