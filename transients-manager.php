@@ -3,7 +3,7 @@
  * Plugin Name: Transients Manager
  * Plugin URL: http://pippinsplugins.com/transients-manager
  * Description: Provides a UI to manage your site's transients. You can view, search, edit, and delete transients at will.
- * Version: 1.0.1
+ * Version: 1.1
  * Author: Pippin Williamson
  * Author URI: http://pippinsplugins.com
  * Contributors: mordauk
@@ -144,6 +144,13 @@ class PW_Transients_Manager {
 
 				<h2><?php _e( 'Transients', 'pw-transients-manager' ); ?></h2>
 
+				<form method="post" class="alignleft">
+					<input type="hidden" name="action" value="delete_expired_transients" />
+					<input type="hidden" name="transient" value="all" />
+					<?php wp_nonce_field( 'transient_manager' ); ?>
+					<input type="submit" class="button secondary" value="<?php _e( 'Delete Expired Transients', 'pw-transients-manager' ); ?>" />
+				</form>
+
 				<form method="get">
 					<p class="search-box">
 						<input type="hidden" name="page" value="pw-transients-manager"/>
@@ -234,7 +241,7 @@ class PW_Transients_Manager {
 
 		if( false === $transients ) {
 
-			$sql = "SELECT * FROM $wpdb->options WHERE option_name LIKE '_transient_%' AND option_name NOT LIKE '_transient_timeout%'";
+			$sql = "SELECT * FROM $wpdb->options WHERE option_name LIKE '\_transient\_%' AND option_name NOT LIKE '\_transient\_timeout%'";
 
 			if( ! empty( $args['search'] ) ) {
 
@@ -276,7 +283,7 @@ class PW_Transients_Manager {
 
 			if( false === $count ) {
 				$search     = esc_sql( $search );
-				$count = $wpdb->get_var( "SELECT count(option_id) FROM $wpdb->options WHERE option_name LIKE '_transient_%' AND option_name NOT LIKE '_transient_timeout%' AND option_name LIKE '%{$search}%'" );
+				$count = $wpdb->get_var( "SELECT count(option_id) FROM $wpdb->options WHERE option_name LIKE '\_transient\_%' AND option_name NOT LIKE '\_transient\_timeout%' AND option_name LIKE '%{$search}%'" );
 				wp_cache_set( 'pw_transients_' . sanitize_key( $search ), $count, '', 3600 );
 			}
 
@@ -286,7 +293,7 @@ class PW_Transients_Manager {
 
 			if( false === $count ) {
 
-				$count = $wpdb->get_var( "SELECT count(option_id) FROM $wpdb->options WHERE option_name LIKE '_transient_%' AND option_name NOT LIKE '_transient_timeout%'" );
+				$count = $wpdb->get_var( "SELECT count(option_id) FROM $wpdb->options WHERE option_name LIKE '\_transient\_%' AND option_name NOT LIKE '\_transient\_timeout%'" );
 				wp_cache_set( 'pw_transients_count', $count, '', 3600 );
 			}
 
@@ -375,8 +382,13 @@ class PW_Transients_Manager {
 	*/
 	private function get_transient_expiration( $transient ) {
 
-		$time_now   = current_time( 'timestamp' );
+		$time_now   = time();
 		$expiration = $this->get_transient_expiration_time( $transient );
+
+		if( empty( $expiration ) ) {
+			return __( 'Does not expire', 'pw-transients-manager' );
+		}
+
 		if( $time_now > $expiration ) {
 			return __( 'Expired', 'pw-transients-manager' );
 		}
@@ -423,8 +435,12 @@ class PW_Transients_Manager {
 				wp_safe_redirect( admin_url( 'tools.php?page=pw-transients-manager&s=' . $search ) ); exit;
 				break;
 
-		}
+			case 'delete_expired_transients' :
+				$this->delete_expired_transients();
+				wp_safe_redirect( admin_url( 'tools.php?page=pw-transients-manager' ) ); exit;
+				break;
 
+		}
 
 	}
 
@@ -446,6 +462,35 @@ class PW_Transients_Manager {
 	}
 
 	/**
+	 * Delete all expired transients
+	 *
+	 * @access  private
+	 * @return  bool
+	 * @since   1.1
+	*/
+	private function delete_expired_transients() {
+
+		global $wpdb;
+
+		$time_now = time();
+		$expired  = $wpdb->get_col( "SELECT option_name FROM $wpdb->options where option_name LIKE '_transient_timeout_%' AND option_value+0 < $time_now" );
+
+		if( empty( $expired ) ) {
+			return false;
+		}
+
+		foreach( $expired as $transient ) {
+
+			$name = str_replace( '_transient_timeout_', '', $transient );
+			delete_transient( $name );
+
+		}
+
+		return true;
+
+	}
+
+	/**
 	 * Update an existing transient
 	 *
 	 * @access  private
@@ -460,7 +505,7 @@ class PW_Transients_Manager {
 
 		$value      = sanitize_text_field( $_POST['value'] );
 		$expiration = sanitize_text_field( $_POST['expires'] );
-		$expiration = $expiration - current_time( 'timestamp' );
+		$expiration = $expiration - time();
 
 		return set_transient( $transient, $value, $expiration );
 
