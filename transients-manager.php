@@ -3,7 +3,7 @@
  * Plugin Name: Transients Manager
  * Plugin URL: http://pippinsplugins.com/transients-manager
  * Description: Provides a UI to manage your site's transients. You can view, search, edit, and delete transients at will.
- * Version: 1.1
+ * Version: 1.2
  * Author: Pippin Williamson
  * Author URI: http://pippinsplugins.com
  * Contributors: mordauk
@@ -149,6 +149,13 @@ class PW_Transients_Manager {
 					<input type="hidden" name="transient" value="all" />
 					<?php wp_nonce_field( 'transient_manager' ); ?>
 					<input type="submit" class="button secondary" value="<?php _e( 'Delete Expired Transients', 'pw-transients-manager' ); ?>" />
+				</form>
+
+				<form method="post" class="alignleft">&nbsp;
+					<input type="hidden" name="action" value="delete_transients_with_expiration" />
+					<input type="hidden" name="transient" value="all" />
+					<?php wp_nonce_field( 'transient_manager' ); ?>
+					<input type="submit" class="button secondary" value="<?php _e( 'Delete Transients with an Expiration', 'pw-transients-manager' ); ?>" />
 				</form>
 
 				<form method="get">
@@ -440,6 +447,11 @@ class PW_Transients_Manager {
 				wp_safe_redirect( admin_url( 'tools.php?page=pw-transients-manager' ) ); exit;
 				break;
 
+			case 'delete_transients_with_expiration' :
+				$this->delete_transients_with_expirations();
+				wp_safe_redirect( admin_url( 'tools.php?page=pw-transients-manager' ) ); exit;
+				break;
+
 		}
 
 	}
@@ -480,6 +492,35 @@ class PW_Transients_Manager {
 		}
 
 		foreach( $expired as $transient ) {
+
+			$name = str_replace( '_transient_timeout_', '', $transient );
+			delete_transient( $name );
+
+		}
+
+		return true;
+
+	}
+
+	/**
+	 * Delete all transients with expiration
+	 *
+	 * @access  private
+	 * @return  bool
+	 * @since   
+	*/
+	private function delete_transients_with_expirations() {
+
+		global $wpdb;
+
+		$time_now = time();
+		$will_expire  = $wpdb->get_col( "SELECT option_name FROM $wpdb->options where option_name LIKE '_transient_timeout_%'" );
+
+		if( empty( $will_expire ) ) {
+			return false;
+		}
+
+		foreach( $will_expire as $transient ) {
 
 			$name = str_replace( '_transient_timeout_', '', $transient );
 			delete_transient( $name );
