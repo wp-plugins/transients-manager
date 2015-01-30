@@ -3,7 +3,7 @@
  * Plugin Name: Transients Manager
  * Plugin URL: http://pippinsplugins.com/transients-manager
  * Description: Provides a UI to manage your site's transients. You can view, search, edit, and delete transients at will.
- * Version: 1.2.1
+ * Version: 1.3
  * Author: Pippin Williamson
  * Author URI: http://pippinsplugins.com
  * Contributors: mordauk
@@ -19,7 +19,7 @@ class PW_Transients_Manager {
 	*/
 	public function __construct() {
 
-		add_action( 'admin_init', array( $this, 'text_domain' ) );
+		add_action( 'init', array( $this, 'text_domain' ) );
 		add_action( 'admin_menu', array( $this, 'tools_link' ) );
 		add_action( 'admin_init', array( $this, 'process_actions' ) );
 
@@ -139,6 +139,7 @@ class PW_Transients_Manager {
 					<?php wp_nonce_field( 'transient_manager' ); ?>
 					<?php submit_button(); ?>
 				</form>
+				<button class="button-secondary" onclick="history.back();"><?php _e( 'Cancel', 'pw-transients-manager' ); ?></button>
 
 			<?php else : ?>
 
@@ -160,6 +161,7 @@ class PW_Transients_Manager {
 
 				<form method="get">
 					<p class="search-box">
+						<button style="margin-left: 6px;" class="alignright button-secondary" onclick="window.location.reload();"><?php _e( 'Refresh', 'pw-transients-manager' ); ?></button>
 						<input type="hidden" name="page" value="pw-transients-manager"/>
 						<label class="screen-reader-text" for="transient-search-input"><?php _e( 'Search', 'pw-transients-manager' ); ?></label>
 						<input type="search" id="transient-search-input" name="s" value="<?php echo esc_attr( $search ); ?>"/>
